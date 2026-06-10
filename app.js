@@ -2931,6 +2931,31 @@ function setupWeeklyScheduleUIListeners() {
       const hoursInput = row.querySelector(`.${hoursClass}`);
       const nobreakInput = row.querySelector(`.${checkboxClass === 'reg-day-rest' ? 'reg-day-nobreak' : 'edit-day-nobreak'}`);
 
+      const recalculateHours = () => {
+        if (checkbox.checked) {
+          if (hoursInput) hoursInput.value = '0';
+          return;
+        }
+        if (startInput && endInput && hoursInput) {
+          const startVal = startInput.value;
+          const endVal = endInput.value;
+          const isNoBreak = nobreakInput ? nobreakInput.checked : false;
+          if (startVal && endVal) {
+            const startMin = timeStrToMinutes(startVal);
+            const endMin = timeStrToMinutes(endVal);
+            let diffMin = endMin - startMin;
+            if (diffMin < 0) {
+              diffMin += 24 * 60; // cruce de medianoche
+            }
+            let totalHours = diffMin / 60;
+            if (!isNoBreak) {
+              totalHours = Math.max(0, totalHours - 1);
+            }
+            hoursInput.value = String(Math.round(totalHours * 100) / 100);
+          }
+        }
+      };
+
       const updateInputsState = () => {
         const isChecked = checkbox.checked;
         if (startInput) {
@@ -2953,15 +2978,18 @@ function setupWeeklyScheduleUIListeners() {
           hoursInput.style.opacity = isChecked ? '0.5' : '1';
           if (isChecked) {
             hoursInput.value = '0';
-          } else if (hoursInput.value === '0') {
-            const dayNum = row.getAttribute('data-day');
-            hoursInput.value = (dayNum === '6') ? '4' : '8';
+          } else {
+            recalculateHours();
           }
         }
       };
 
       updateInputsState();
       checkbox.addEventListener('change', updateInputsState);
+
+      if (startInput) startInput.addEventListener('input', recalculateHours);
+      if (endInput) endInput.addEventListener('input', recalculateHours);
+      if (nobreakInput) nobreakInput.addEventListener('change', recalculateHours);
     });
   };
 
